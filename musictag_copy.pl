@@ -4,20 +4,11 @@ use warnings;
 
 use Music::Tag;
 
-my $in_file = shift;  
-my $out_file = shift;  
+# set to 0 or 1, if you want to change how much output is shown per file
+my $quiet = 1;
 
-my $in = Music::Tag->new($in_file);
-$in->get_tag();
-my $out = Music::Tag->new($out_file);
-$out->get_tag();
-
-#use Data::Dumper;
-#print Dumper($in->used_datamethods());
-#print Dumper($out->used_datamethods());
-#my %in_methods = $in->used_datamethods();
-#my @out_methods = $out->used_datamethods();
-
+my $num_args = $#ARGV +1;
+die "Must use even number of file names; you sent $num_args" if ($num_args % 2 != 0) ;
 
 # ones I think are good
 my @methods =  (
@@ -54,25 +45,44 @@ my @methods =  (
     'releasetime',
     'countrycode',
 );
-#print Dumper(@methods);
-#print Dumper($out->data);
-foreach (@methods) {
-    print $_ . "\n";
-    
-    my $val = $in->$_;
-    print "\tsource value: " . $val . "\n" if $val;
-    
-    my $dest_detail;
-    if ($val) {
-        $dest_detail = "was previously";
-    } else {
-        $dest_detail = "unchanged";
+
+my ($in_file, $out_file, $in, $out, $val, $val2, $dest_detail);
+
+my $num_pairs = $num_args/2;
+for (my $i = 0; $i < $num_pairs; $i++) {
+    $in_file = $ARGV[$i];  
+    $out_file = $ARGV[$i+$num_pairs];  
+
+    print "$in_file -> $out_file\n";
+
+    $in = Music::Tag->new($in_file);
+    $in->get_tag();
+    $out = Music::Tag->new($out_file);
+    $out->get_tag();
+
+    foreach (@methods) {
+        if (!$quiet) {
+            print $_ . "\n";
+        }
+        
+        $val = $in->$_;
+        if (!$quiet) {
+            print "\tsource value: " . $val . "\n" if $val;
+        }
+        
+        if ($val) {
+            $dest_detail = "was previously";
+        } else {
+            $dest_detail = "unchanged";
+        }
+        
+        $val2 = $out->$_;
+        if (!$quiet) {
+            print "\tdestination $dest_detail: " . $val2 . "\n" if $val2;
+        }
+        
+        $out->$_($in->$_);
     }
-    
-    my $val2 = $out->$_;
-    print "\tdestination $dest_detail: " . $val2 . "\n" if $val2;
-    
-    $out->$_($in->$_);
+    #print Dumper($out->data);
+    $out->set_tag();
 }
-#print Dumper($out->data);
-$out->set_tag();
